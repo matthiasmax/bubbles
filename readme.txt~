@@ -1,0 +1,11 @@
+mal notizen sammeln wird spaeter zu ner richtigen readme vervollstaendigt
+
+was man fuer openni installieren braucht
+
+was man zum kompilieren der bubbles quelldateien braucht
+
+den ordner openni  (in den bubbles ordner legen)
+(genauer den ordner openni/Platform/Linux-x86/Redist)
+in diesem muss man den Redist ordner erstellen indem man in das Verzeichnis 
+ordner openni/Platform/Linux-x86/CreateRedist
+geht und dort ./RedistMaker ausfuehrt (evtl chmod +x RedistMaker noetig)
