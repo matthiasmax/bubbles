@@ -44,6 +44,7 @@ XnBool g_bDrawPixels = TRUE;
 XnBool g_bDrawSkeleton = TRUE;
 XnBool g_bPrintID = TRUE;
 XnBool g_bPrintState = TRUE;
+XnBool g_bGame = FALSE; //Matthias
 
 #ifndef USE_GLES
 #if (XN_PLATFORM == XN_PLATFORM_MACOSX)
@@ -296,6 +297,14 @@ void glutKeyboard (unsigned char key, int x, int y)
 	case'p':
 		g_bPause = !g_bPause;
 		break;
+                
+        // Starte das Seifenblasen Spiel        
+        case'g':
+                g_bGame = !g_bGame;     // spiel gestartet
+                g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
+                g_bDrawBackground = FALSE;                
+                break;
+                
 	case 'S':
 		SaveCalibration();
 		break;
@@ -309,7 +318,7 @@ void glInit (int * pargc, char ** argv)
 	glutInit(pargc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(GL_WIN_SIZE_X, GL_WIN_SIZE_Y);
-	glutCreateWindow ("Prime Sense User Tracker Viewer");
+	glutCreateWindow ("Seifenblasen balancieren");
 	//glutFullScreen();
 	glutSetCursor(GLUT_CURSOR_NONE);
 
