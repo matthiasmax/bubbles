@@ -10,7 +10,44 @@ in diesem muss man den Redist ordner erstellen indem man in das Verzeichnis
 ordner openni/Platform/Linux-x86/CreateRedist
 geht und dort ./RedistMaker ausfuehrt (evtl chmod +x RedistMaker noetig)
 
+-----------------
+dann muss man den pfad der samplesConfig in den Quelldateien aendern z.B. in
+#define SAMPLE_XML_PATH "../../openniRedist/Samples/Config/SamplesConfig.xml"
+wenn man den redist ordner in den gleichen ordner wie das make file und die quelldateien legt.
+Dann muss noch das Makefile geaendert werden 
+z.B. so:
 
+OSTYPE := $(shell uname -s)
+
+BIN_DIR = bin
+
+INC_DIRS = openniRedist/Include /usr/include/ni
+
+SRC_FILES = \
+	main.cpp \
+	SceneDrawer.cpp	
+
+EXE_NAME = seifenblasen
+
+ifneq "$(GLES)" "1"
+ifeq ("$(OSTYPE)","Darwin")
+	LDFLAGS += -framework OpenGL -framework GLUT
+else
+	USED_LIBS += glut
+endif
+else
+	DEFINES += USE_GLES
+	USED_LIBS += GLES_CM IMGegl srv_um
+	SRC_FILES += opengles.cpp
+endif
+
+USED_LIBS += OpenNI
+
+LIB_DIRS += ../../Lib
+include openniRedist/Samples/Build/Common/CommonCppMakefile
+
+
+-----------------------------------------------------------------------------------------------------------
 
 
 

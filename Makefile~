@@ -8,7 +8,7 @@ SRC_FILES = \
 	main.cpp \
 	SceneDrawer.cpp	
 
-EXE_NAME = Sample-NiUserTracker
+EXE_NAME = seifenblasen
 
 ifneq "$(GLES)" "1"
 ifeq ("$(OSTYPE)","Darwin")
@@ -21,6 +21,8 @@ else
 	USED_LIBS += GLES_CM IMGegl srv_um
 	SRC_FILES += opengles.cpp
 endif
+
+
 
 USED_LIBS += OpenNI
 

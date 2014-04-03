@@ -234,7 +234,7 @@ void glutDisplay (void)
 	xn::DepthMetaData depthMD;
 	g_DepthGenerator.GetMetaData(depthMD);
 #ifndef USE_GLES
-	glOrtho(0, depthMD.XRes(), depthMD.YRes(), 0, -1.0, 1.0);
+	glFrustum(0, depthMD.XRes(), depthMD.YRes(), 0, -1.0, 1.0);
 #else
 	glOrthof(0, depthMD.XRes(), depthMD.YRes(), 0, -1.0, 1.0);
 #endif
@@ -254,7 +254,7 @@ void glutDisplay (void)
 
 #ifndef USE_GLES
 	glutSwapBuffers();
-#endif
+#endif  
 }
 
 #ifndef USE_GLES
@@ -298,10 +298,13 @@ void glutKeyboard (unsigned char key, int x, int y)
 		g_bPause = !g_bPause;
 		break;
                 
-                //Matthias
-                case'g':
-        		g_bGame = !g_bGame;
-        		break;
+        // Starte das Seifenblasen Spiel        
+        case'g':
+                g_bGame = !g_bGame;     // spiel gestartet
+                g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
+                g_bDrawBackground = FALSE;                
+                break;
+                
 	case 'S':
 		SaveCalibration();
 		break;
