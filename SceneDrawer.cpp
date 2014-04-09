@@ -23,7 +23,6 @@
 // Includes
 //---------------------------------------------------------------------------
 #include "SceneDrawer.h"
-#include "SOIL.h"  //zum laden der textur
 #include "math.h"
 
 #ifndef USE_GLES
@@ -211,47 +210,6 @@ const XnChar* GetPoseErrorString(XnPoseDetectionStatus error)
 	}
 }
 
-//vonMatthias
-// bekommt den mittelpunkt und den Radius und zeichnet damit den Kreis
-// sollte noch optimiert werden indem das initaliseren und laden der textur auserhalb geschieht
-// muss dann aber testen ob das permanente speicherbelegen nicht mehr belastet als das immer wieder laden
-void drawBubble( int x, int y, int r )
-{  
-	glEnable(GL_TEXTURE_2D);
-    	 glShadeModel(GL_SMOOTH);
-    	 glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
-    	 glClearDepth(1.0f);
-   	 glEnable(GL_DEPTH_TEST);
-  	 glDepthFunc(GL_LEQUAL);
-  	 glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-	glEnable(GL_BLEND);
-	
-	//Lade Textur auf ein Quad mit hilfe von SOIL
-	GLuint tex_2d = SOIL_load_OGL_texture
-	(
-		"/home/matthias/bubbles/bubble.tga",
-		SOIL_LOAD_AUTO,
-		SOIL_CREATE_NEW_ID,
-		SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
-	);
-	// check for an error during the load process 
-	if( 0 == tex_2d )
-	{
-		printf( "SOIL loading error: '%s'\n", SOIL_last_result() );
-	}
-
-	glBindTexture(GL_TEXTURE_2D, tex_2d);
-	glColor4f(1,1,1,1);
-	glBegin(GL_QUADS);
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f( x - r, y + r,  1.0f); //links unten
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f( x + r, y + r,  1.0f); //rechts unten
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f( x + r, y - r,  1.0f); //rechts oben
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f( x - r, y - r,  1.0f); //links oben
-	glEnd();
-	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-}
-
 void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 {
 	static bool bInitialized = false;	
@@ -387,11 +345,13 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 				
 				
 				if( g_bGame && kreis[nX + nY*g_nXRes] )
-                                 {
+                {
+					/* Hier koennte ich eventuell einen anderen hintergrund zeichnen lassen
 					pDestImage[0] = 255;   //rot
 					pDestImage[1] = 128;   //gruen
 					pDestImage[2] = 0;     //blau
-                                 }
+					*/
+                }
                                 
 				pDepth++;
 				pLabels++;
@@ -457,6 +417,8 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 
 			glRasterPos2i(com.X, com.Y);
 			glPrintString(GLUT_BITMAP_HELVETICA_18, strLabel);
+//printf("Das ist x: %f  ...  Das ist y: %f \n", com.X, com.Y);
+
 		}
 #endif
                  // Zeichnet das Skelet in die einzelnen User hinein
@@ -493,7 +455,4 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 #endif
 		}
 	}
-	
-	drawBubble(350, 100, 25);
-	
 }

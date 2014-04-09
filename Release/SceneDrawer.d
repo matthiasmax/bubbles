@@ -57,7 +57,7 @@ Release/SceneDrawer.d Release/SceneDrawer.o: SceneDrawer.cpp \
  openniRedist/Include/XnPrdNode.h \
  openniRedist/Include/XnEnumerationErrors.h \
  openniRedist/Include/XnVersion.h openniRedist/Include/XnCodecIDs.h \
- SOIL.h /usr/include/math.h /usr/include/i386-linux-gnu/bits/huge_val.h \
+ /usr/include/math.h /usr/include/i386-linux-gnu/bits/huge_val.h \
  /usr/include/i386-linux-gnu/bits/huge_valf.h \
  /usr/include/i386-linux-gnu/bits/huge_vall.h \
  /usr/include/i386-linux-gnu/bits/inf.h \
@@ -259,8 +259,6 @@ openniRedist/Include/XnEnumerationErrors.h:
 openniRedist/Include/XnVersion.h:
 
 openniRedist/Include/XnCodecIDs.h:
-
-SOIL.h:
 
 /usr/include/math.h:
 

@@ -57,7 +57,7 @@ Release/main.d Release/main.o: main.cpp openniRedist/Include/XnOpenNI.h \
  openniRedist/Include/XnEnumerationErrors.h \
  openniRedist/Include/XnVersion.h openniRedist/Include/XnCodecIDs.h \
  openniRedist/Include/XnCppWrapper.h SceneDrawer.h \
- openniRedist/Include/XnPropNames.h /usr/include/GL/glut.h \
+ openniRedist/Include/XnPropNames.h SOIL.h Blase.h /usr/include/GL/glut.h \
  /usr/include/GL/freeglut_std.h /usr/include/GL/gl.h \
  /usr/include/GL/glext.h /usr/include/inttypes.h \
  /usr/lib/gcc/i686-linux-gnu/4.6/include/stdint.h /usr/include/stdint.h \
@@ -230,6 +230,10 @@ openniRedist/Include/XnCppWrapper.h:
 SceneDrawer.h:
 
 openniRedist/Include/XnPropNames.h:
+
+SOIL.h:
+
+Blase.h:
 
 /usr/include/GL/glut.h:
 

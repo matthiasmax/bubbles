@@ -457,6 +457,8 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 
 			glRasterPos2i(com.X, com.Y);
 			glPrintString(GLUT_BITMAP_HELVETICA_18, strLabel);
+//printf("Das ist x: %f  ...  Das ist y: %f \n", com.X, com.Y);
+
 		}
 #endif
                  // Zeichnet das Skelet in die einzelnen User hinein
@@ -495,4 +497,14 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 	}
 	
 	drawBubble(350, 100, 25);
+
+
+
+  /*  glFontBegin(&font);
+    glScalef(8.0, 8.0, 8.0);
+    glTranslatef(30, 30, 0);
+    glFontTextOut("Test", 5, 5, 0);
+    glFontEnd();
+    glFlush();
+	*/
 }
