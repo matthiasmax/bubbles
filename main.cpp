@@ -307,7 +307,7 @@ void drawBubbles()
 
 void markierePosition( int x , int y, int r)
 {
-	glColor4f(1,1,0,1);
+	glColor4f(1,0.8,0,1);
 	glBegin(GL_QUADS);
 
 		    glVertex3f( x - r, y + r,  1.0f); //links unten
@@ -318,64 +318,48 @@ void markierePosition( int x , int y, int r)
 	glEnd();
 }
 
-
-void checkCollision()
+void checkCollisionOnJoint( XnUserID usr, XnSkeletonJoint jt )
 {
-	XnUserID aUsers[15];
-	XnUInt16 nUsers = 15;
+	XnSkeletonJointPosition joint;
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition( usr, jt, joint);
+	XnPoint3D point = joint.position;
+	g_DepthGenerator.ConvertRealWorldToProjective(1, &point, &point);
+
+	markierePosition( point.X, point.Y, 5);
+	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
+	{
+		//pruefe mit Pythagoras ob Blase User an der position point beruehrt
+		if( (point.X - (*i).x)*(point.X - (*i).x) + ( point.Y - (*i).y)*( point.Y - (*i).y) < ((*i).r)*((*i).r))
+		{
+			(*i).setMove( 3, -10);
+		}
+	}
+}
+
+void checkCollisionAll()
+{
+	XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
+	XnUserID aUsers[nUsers];
+
 	g_UserGenerator.GetUsers(aUsers, nUsers);
 	for (int i = 0; i < nUsers; ++i)
 	{
-		XnSkeletonJointPosition joint;
-		g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(aUsers[i],  XN_SKEL_LEFT_HAND,joint);
-		XnPoint3D pos_left = joint.position;
-		g_DepthGenerator.ConvertRealWorldToProjective(1, &pos_left, &pos_left);
+		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_HAND );
+		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_HAND );
+		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_ELBOW );
+		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_ELBOW);
 
-
-		glRasterPos2i(100, 100);
-		char label[50] = "";
-		sprintf( label, "x= %f || y= %f ", pos_left.X, pos_left.Y);
-		glPrintString(GLUT_BITMAP_HELVETICA_18, label);
-		markierePosition(pos_left.X, pos_left.Y, 10);
-
-		for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
-		{
-			//pruefe mit Pythagoras ob Blase User i beruehrt
-			if( (pos_left.X - (*i).x)*(pos_left.X - (*i).x) + ( pos_left.Y - (*i).y)*( pos_left.Y - (*i).y) < ((*i).r)*((*i).r))
-			{
-				(*i).setMove( 1, -5);
-			}
-
-			double dasDouble = pos_left.X;
-			int dasx = (*i).x;
-
-			printf("Das ist die Positin x der linken Hand: %f und das der Blase %d \n", dasDouble, dasx );
-		}
-
-
-		//glRasterPos2i(com.X, com.Y);
+		checkCollisionOnJoint( aUsers[i], XN_SKEL_HEAD);
 	}
-
-
-/*
-	//One-Player-Mode
-	if(userCount<2){
-		XnPoint3D pos_left=getLeftHandPosition(user1);
-		grabed=robo->grab(pos_left.X,pos_left.Y,pos_right.X,pos_right.Y);
-	//Multiplayermode
-	}else{
-		XnPoint3D pos_right_user2;
-		XnPoint3D pos_left_user2;
-		pos_right_user2=getRightHandPosition(user2);
-		pos_left_user2=getLeftHandPosition(user2);
-		grabed=robo->grab(pos_left_user2.X,pos_left_user2.Y,pos_right_user2.X,pos_right_user2.Y);
-
-	}
-*/
 }
 
 void updateBubbles()
 {
+	glRasterPos2i(20, 20);
+	char label[50] = "";
+	sprintf( label, "Anzahl Blasen: %d", bla.size());
+	glPrintString(GLUT_BITMAP_HELVETICA_18, label);
+
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
 		(*i).updateBlase();
@@ -417,7 +401,7 @@ void glutDisplay (void)
 
 	if( g_bGame )
 	{
-		checkCollision();
+		checkCollisionAll();
 		updateBubbles();
 		drawBubbles();
 	}
@@ -473,6 +457,7 @@ void glutKeyboard (unsigned char key, int x, int y)
                 g_bGame = !g_bGame;     // spiel gestartet
                 g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
                 g_bDrawBackground = FALSE;
+                bla.push_back( Blase() );
                 break;
                 
         case 'n':

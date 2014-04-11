@@ -19,7 +19,7 @@ Blase::Blase() {
 	y = 0;
 
 	vx = 0;
-	vy = 3;
+	vy = 1;
 }
 
 Blase::~Blase() {
@@ -28,6 +28,11 @@ Blase::~Blase() {
 
 void Blase::updateBlase()
 {
+	//Berechne Schwerkraft und Traegheit in die Bewegung der Blase mit ein
+	vy += 0.3;
+	vx *= 0.5;
+
+
 	x += vx;
 	y += vy;
 }

@@ -17,11 +17,11 @@ public:
 	void setMove( int x, int y);
 
 	int r;	//radius
-	int x;	//X Koordinate
-	int y;	//Y Koordinate
+	double x;	//X Koordinate
+	double y;	//Y Koordinate
 
-	int vx;	// Bewegungsrichtung der x Koordinate mit Geschwindigkeit
-	int vy;  // Bewegungsrichtung der y Koordinate mit Geschwindigkeit
+	double vx;	// Bewegungsrichtung der x Koordinate mit Geschwindigkeit
+	double vy;  // Bewegungsrichtung der y Koordinate mit Geschwindigkeit
 
 
 };
