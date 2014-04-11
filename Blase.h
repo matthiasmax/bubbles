@@ -13,9 +13,16 @@ public:
 	Blase();
 	virtual ~Blase();
 
-	int r;
-	int x;
-	int y;
+	void updateBlase();
+
+	int r;	//radius
+	int x;	//X Koordinate
+	int y;	//Y Koordinate
+
+	int vx;	// Bewegungsrichtung der x Koordinate mit Geschwindigkeit
+	int vy;  // Bewegungsrichtung der y Koordinate mit Geschwindigkeit
+
+
 };
 
 #endif /* BLASE_H_ */

@@ -29,6 +29,7 @@
 #include <XnPropNames.h>
 #include "SOIL.h"  //zum laden der textur
 #include "Blase.h"
+#include <vector> // Für die Klasse std::vector
 
 //---------------------------------------------------------------------------
 // Globals
@@ -71,6 +72,8 @@ XnBool g_bPause = false;
 XnBool g_bRecord = false;
 
 XnBool g_bQuit = false;
+
+std::vector<Blase> bla;
 
 //---------------------------------------------------------------------------
 // Code
@@ -237,41 +240,47 @@ void drawBubbles()
 
 	glEnable(GL_BLEND);
 
-	//Lade Textur auf ein Quad mit hilfe von SOIL
-	GLuint tex_2d = SOIL_load_OGL_texture
-	(
-//		"/home/matthias/bubbles/bubble.tga",
-		"/home_nfs/2013ws_bubble_a/bubbles/bubble.tga",
-		SOIL_LOAD_AUTO,
-		SOIL_CREATE_NEW_ID,
-		SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
-	);
-	// check for an error during the load process
-	if( 0 == tex_2d )
-	{
-		printf( "SOIL loading error: '%s'\n", SOIL_last_result() );
-	}
+		//Lade Textur auf ein Quad mit hilfe von SOIL
+		// Hier waere es besser selbst eine Methode zum Laden zu schreiben
+		GLuint tex_2d = SOIL_load_OGL_texture
+				(
+//					"./bubble.tga",		//funktioniert nicht
+					"/home/matthias/bubbles/bubble.tga",
+//					"/home_nfs/2013ws_bubble_a/bubbles/bubble.tga",
+					SOIL_LOAD_AUTO,
+					SOIL_CREATE_NEW_ID,
+					SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
+				);
+		// check for an error during the load process
+		if( 0 == tex_2d )
+		{
+			printf( "SOIL loading error: '%s'\n", SOIL_last_result() );
+		}
 
-	Blase bla;
-	int x = 350;
-	int y = 100;
-	int r = 125;
 
 	glBindTexture(GL_TEXTURE_2D, tex_2d);
 	glColor4f(1,1,1,1);
 	glBegin(GL_QUADS);
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f( x - r, y + r,  1.0f); //links unten
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f( x + r, y + r,  1.0f); //rechts unten
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f( x + r, y - r,  1.0f); //rechts oben
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f( x - r, y - r,  1.0f); //links oben
 
+		for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
+		{
+		    glTexCoord2f(0.0f, 0.0f); glVertex3f( (*i).x - (*i).r, (*i).y + (*i).r,  1.0f); //links unten
+		    glTexCoord2f(1.0f, 0.0f); glVertex3f( (*i).x + (*i).r, (*i).y + (*i).r,  1.0f); //rechts unten
+		    glTexCoord2f(1.0f, 1.0f); glVertex3f( (*i).x + (*i).r, (*i).y - (*i).r,  1.0f); //rechts oben
+		    glTexCoord2f(0.0f, 1.0f); glVertex3f( (*i).x - (*i).r, (*i).y - (*i).r,  1.0f); //links oben
+		}
 
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f( bla.x - bla.r, bla.y + bla.r,  1.0f); //links unten
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f( bla.x + bla.r, bla.y + bla.r,  1.0f); //rechts unten
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f( bla.x + bla.r, bla.y - bla.r,  1.0f); //rechts oben
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f( bla.x - bla.r, bla.y - bla.r,  1.0f); //links oben
 	glEnd();
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+}
+
+void updateBubbles()
+{
+
+	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
+	{
+		(*i).updateBlase();
+	}
 }
 
 // this function is called each frame
@@ -309,6 +318,7 @@ void glutDisplay (void)
 
 	if( g_bGame )
 	{
+		updateBubbles();
 		drawBubbles();
 	}
 
@@ -362,9 +372,13 @@ void glutKeyboard (unsigned char key, int x, int y)
         case'g':
                 g_bGame = !g_bGame;     // spiel gestartet
                 g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
-                g_bDrawBackground = FALSE;                
+                g_bDrawBackground = FALSE;
                 break;
                 
+        case 'n':
+        		bla.push_back( Blase() );
+        		break;
+
 	case 'S':
 		SaveCalibration();
 		break;
