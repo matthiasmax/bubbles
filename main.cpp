@@ -90,6 +90,35 @@ void CleanupExit()
 	exit (1);
 }
 
+XnPoint3D getRightHandPosition(XnUserID user){
+	XnSkeletonJointPosition joint1, joint2;
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_RIGHT_HAND,joint2);
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_TORSO,joint1);
+	XnPoint3D handpos,shoulderpos,respos;
+	handpos = joint2.position;
+	shoulderpos = joint1.position;
+	respos=joint2.position;
+	respos.X=handpos.X-shoulderpos.X;
+	respos.Y=handpos.Y-shoulderpos.Y;
+	respos.Z=handpos.Z-shoulderpos.Z;
+	return respos;
+}
+
+XnPoint3D getLeftHandPosition(XnUserID user){
+	XnSkeletonJointPosition joint1, joint2;
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_LEFT_HAND,joint2);
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_TORSO,joint1);
+	XnPoint3D handpos,shoulderpos,respos;
+	handpos = joint2.position;
+	shoulderpos = joint1.position;
+	respos=joint2.position;
+	respos.X=handpos.X-shoulderpos.X;
+	respos.Y=handpos.Y-shoulderpos.Y;
+	respos.Z=handpos.Z-shoulderpos.Z;
+	//printf("Hand - X:%2f Y:%2f Z:%2f\n",respos.X,respos.Y,respos.Z);
+	return respos;
+}
+
 // Callback: New user was detected
 void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
 {
@@ -274,9 +303,58 @@ void drawBubbles()
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 }
 
+void checkCollision()
+{
+	XnUserID aUsers[15];
+	XnUInt16 nUsers = 15;
+	g_UserGenerator.GetUsers(aUsers, nUsers);
+	for (int i = 0; i < nUsers; ++i)
+	{
+//		XnPoint3D com;
+//		g_UserGenerator.GetCoM(aUsers[i], com);
+//		g_DepthGenerator.ConvertRealWorldToProjective(1, &com, &com);
+
+		XnPoint3D pos_left=getLeftHandPosition(aUsers[i]);
+		g_DepthGenerator.ConvertRealWorldToProjective(1, &pos_left, &pos_left);
+
+		for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
+		{
+			//pruefe mit Pythagoras ob Blase User i beruehrt
+			if( (pos_left.X - (*i).x)*(pos_left.X - (*i).x) + ( pos_left.Y - (*i).y)*( pos_left.Y - (*i).y) < (*i).r)
+			{
+				(*i).setMove( -5, -5);
+			}
+
+			double dasDouble = pos_left.X;
+			int dasx = (*i).x;
+
+			printf("Das ist die Positin x der linken Hand: %f und das der Blase %d \n", dasDouble, dasx );
+		}
+
+
+		//glRasterPos2i(com.X, com.Y);
+	}
+
+
+/*
+	//One-Player-Mode
+	if(userCount<2){
+		XnPoint3D pos_left=getLeftHandPosition(user1);
+		grabed=robo->grab(pos_left.X,pos_left.Y,pos_right.X,pos_right.Y);
+	//Multiplayermode
+	}else{
+		XnPoint3D pos_right_user2;
+		XnPoint3D pos_left_user2;
+		pos_right_user2=getRightHandPosition(user2);
+		pos_left_user2=getLeftHandPosition(user2);
+		grabed=robo->grab(pos_left_user2.X,pos_left_user2.Y,pos_right_user2.X,pos_right_user2.Y);
+
+	}
+*/
+}
+
 void updateBubbles()
 {
-
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
 		(*i).updateBlase();
@@ -318,6 +396,7 @@ void glutDisplay (void)
 
 	if( g_bGame )
 	{
+		checkCollision();
 		updateBubbles();
 		drawBubbles();
 	}

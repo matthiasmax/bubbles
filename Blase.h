@@ -14,6 +14,7 @@ public:
 	virtual ~Blase();
 
 	void updateBlase();
+	void setMove( int x, int y);
 
 	int r;	//radius
 	int x;	//X Koordinate

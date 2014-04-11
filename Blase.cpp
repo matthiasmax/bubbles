@@ -31,3 +31,9 @@ void Blase::updateBlase()
 	x += vx;
 	y += vy;
 }
+
+void Blase::setMove( int x, int y)
+{
+	vx = x;
+	vy = y;
+}
