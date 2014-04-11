@@ -65,8 +65,8 @@ static EGLSurface surface = EGL_NO_SURFACE;
 static EGLContext context = EGL_NO_CONTEXT;
 #endif
 
-#define GL_WIN_SIZE_X 720
-#define GL_WIN_SIZE_Y 480
+#define GL_WIN_SIZE_X 1500	//720
+#define GL_WIN_SIZE_Y 700   //480
 
 XnBool g_bPause = false;
 XnBool g_bRecord = false;
@@ -89,6 +89,7 @@ void CleanupExit()
 
 	exit (1);
 }
+/*
 
 XnPoint3D getRightHandPosition(XnUserID user){
 	XnSkeletonJointPosition joint1, joint2;
@@ -118,6 +119,7 @@ XnPoint3D getLeftHandPosition(XnUserID user){
 	//printf("Hand - X:%2f Y:%2f Z:%2f\n",respos.X,respos.Y,respos.Z);
 	return respos;
 }
+*/
 
 // Callback: New user was detected
 void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
@@ -303,6 +305,20 @@ void drawBubbles()
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 }
 
+void markierePosition( int x , int y, int r)
+{
+	glColor4f(1,1,0,1);
+	glBegin(GL_QUADS);
+
+		    glVertex3f( x - r, y + r,  1.0f); //links unten
+		    glVertex3f( x + r, y + r,  1.0f); //rechts unten
+		    glVertex3f( x + r, y - r,  1.0f); //rechts oben
+		    glVertex3f( x - r, y - r,  1.0f); //links oben
+
+	glEnd();
+}
+
+
 void checkCollision()
 {
 	XnUserID aUsers[15];
@@ -310,19 +326,24 @@ void checkCollision()
 	g_UserGenerator.GetUsers(aUsers, nUsers);
 	for (int i = 0; i < nUsers; ++i)
 	{
-//		XnPoint3D com;
-//		g_UserGenerator.GetCoM(aUsers[i], com);
-//		g_DepthGenerator.ConvertRealWorldToProjective(1, &com, &com);
-
-		XnPoint3D pos_left=getLeftHandPosition(aUsers[i]);
+		XnSkeletonJointPosition joint;
+		g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(aUsers[i],  XN_SKEL_LEFT_HAND,joint);
+		XnPoint3D pos_left = joint.position;
 		g_DepthGenerator.ConvertRealWorldToProjective(1, &pos_left, &pos_left);
+
+
+		glRasterPos2i(100, 100);
+		char label[50] = "";
+		sprintf( label, "x= %f || y= %f ", pos_left.X, pos_left.Y);
+		glPrintString(GLUT_BITMAP_HELVETICA_18, label);
+		markierePosition(pos_left.X, pos_left.Y, 10);
 
 		for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 		{
 			//pruefe mit Pythagoras ob Blase User i beruehrt
-			if( (pos_left.X - (*i).x)*(pos_left.X - (*i).x) + ( pos_left.Y - (*i).y)*( pos_left.Y - (*i).y) < (*i).r)
+			if( (pos_left.X - (*i).x)*(pos_left.X - (*i).x) + ( pos_left.Y - (*i).y)*( pos_left.Y - (*i).y) < ((*i).r)*((*i).r))
 			{
-				(*i).setMove( -5, -5);
+				(*i).setMove( 1, -5);
 			}
 
 			double dasDouble = pos_left.X;
