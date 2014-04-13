@@ -318,20 +318,66 @@ void markierePosition( int x , int y, int r)
 	glEnd();
 }
 
+//prueft ob eine blase das Koerperglied zwischen joint1 und joint2 des users usr beruehrt
+void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint joint2)
+{
+	XnSkeletonJointPosition joint_pos;
+
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition( usr, joint1, joint_pos);
+	XnPoint3D limb_start = joint_pos.position;
+	g_DepthGenerator.ConvertRealWorldToProjective(1, &limb_start, &limb_start);
+
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition( usr, joint2, joint_pos);
+	XnPoint3D limb_end = joint_pos.position;
+	g_DepthGenerator.ConvertRealWorldToProjective(1, &limb_end, &limb_end);
+
+	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
+	{
+		//http://www.spieleprogrammierer.de/wiki/2D-Kollisionserkennung#Kollision_zwischen_einem_Kreis_und_einer_Geraden
+
+			double ax = limb_end.X - limb_start.X;
+			double ay = limb_end.Y - limb_start.Y;
+
+			double bx = (*i).x - limb_start.X;
+			double by = (*i).y - limb_start.Y;
+
+			double t = (ax * bx + ay * by) / (ax * ax + ay * ay);
+
+		      if (t < 0) t = 0;
+		      if (t > 1) t = 1;
+
+				double px = limb_start.X + ax * t;
+				double py = limb_start.Y + ay * t;
+
+
+
+		//pruefe mit Pythagoras ob Blase User am Punkt des Limb beruehrt der am naechsten liegt
+		if( (px - (*i).x)*(px - (*i).x) + ( py - (*i).y)*( py - (*i).y) < ((*i).r)*((*i).r))
+		{
+			markierePosition( px, py, 5);
+			(*i).setMove( 3, -5);
+		}
+	}
+}
+
+// prueft ob die Blase den user usr am joint jt beruehrt
+// wird nicht mehr benoetigt da checkCollisionLimb die joints
+// und das komplette koerperglied zwischen den joints ueberprueft
 void checkCollisionOnJoint( XnUserID usr, XnSkeletonJoint jt )
 {
-	XnSkeletonJointPosition joint;
-	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition( usr, jt, joint);
-	XnPoint3D point = joint.position;
+	XnSkeletonJointPosition joint_pos;
+	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition( usr, jt, joint_pos);
+	XnPoint3D point = joint_pos.position;
 	g_DepthGenerator.ConvertRealWorldToProjective(1, &point, &point);
 
-	markierePosition( point.X, point.Y, 5);
+	//markierePosition( point.X, point.Y, 5);
+
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
 		//pruefe mit Pythagoras ob Blase User an der position point beruehrt
 		if( (point.X - (*i).x)*(point.X - (*i).x) + ( point.Y - (*i).y)*( point.Y - (*i).y) < ((*i).r)*((*i).r))
 		{
-			(*i).setMove( 3, -10);
+			(*i).setMove( 3, -5);
 		}
 	}
 }
@@ -344,14 +390,23 @@ void checkCollisionAll()
 	g_UserGenerator.GetUsers(aUsers, nUsers);
 	for (int i = 0; i < nUsers; ++i)
 	{
-		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_HAND );
-		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_HAND );
-		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_ELBOW );
-		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_ELBOW);
+//		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_HAND );
+//		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_HAND );
+//		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_ELBOW );
+//		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_ELBOW);
+//
+//		checkCollisionOnJoint( aUsers[i], XN_SKEL_HEAD);
 
-		checkCollisionOnJoint( aUsers[i], XN_SKEL_HEAD);
+		checkCollisionLimb( aUsers[i], XN_SKEL_LEFT_HAND, XN_SKEL_LEFT_ELBOW);
+		checkCollisionLimb( aUsers[i], XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_SHOULDER);
+		checkCollisionLimb( aUsers[i], XN_SKEL_RIGHT_HAND, XN_SKEL_RIGHT_ELBOW);
+		checkCollisionLimb( aUsers[i], XN_SKEL_RIGHT_ELBOW, XN_SKEL_RIGHT_SHOULDER);
+
 	}
 }
+
+
+
 
 void updateBubbles()
 {
