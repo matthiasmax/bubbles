@@ -6,7 +6,9 @@ INC_DIRS = openniRedist/Include /usr/include/ni
 
 SRC_FILES = \
 	main.cpp \
-	SceneDrawer.cpp	
+	SceneDrawer.cpp	\
+	Blase.cpp \
+	tga.cpp
 
 EXE_NAME = seifenblasen
 
@@ -22,7 +24,7 @@ else
 	SRC_FILES += opengles.cpp
 endif
 
-
+USED_LIBS += SOIL
 
 USED_LIBS += OpenNI
 

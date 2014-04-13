@@ -12,7 +12,6 @@ class Blase {
 public:
 	Blase();
 	virtual ~Blase();
-	Blase( int helpRandom );
 
 	void updateBlase();
 	void setMove( int x, int y);

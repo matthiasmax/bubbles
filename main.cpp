@@ -27,8 +27,8 @@
 #include <XnCppWrapper.h>
 #include "SceneDrawer.h"
 #include <XnPropNames.h>
-#include "SOIL.h"  //zum laden der textur
-#include "Blase.h"
+#include "tga.h"  //zum laden der textur
+#include "Blase.h" //definiert die Blasen
 #include <vector> // Für die Klasse std::vector
 
 //---------------------------------------------------------------------------
@@ -75,6 +75,8 @@ XnBool g_bQuit = false;
 
 std::vector<Blase> bla;
 
+Texture dieBlase;		//speichert die Seifenblasentextur
+
 //---------------------------------------------------------------------------
 // Code
 //---------------------------------------------------------------------------
@@ -89,37 +91,6 @@ void CleanupExit()
 
 	exit (1);
 }
-/*
-
-XnPoint3D getRightHandPosition(XnUserID user){
-	XnSkeletonJointPosition joint1, joint2;
-	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_RIGHT_HAND,joint2);
-	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_TORSO,joint1);
-	XnPoint3D handpos,shoulderpos,respos;
-	handpos = joint2.position;
-	shoulderpos = joint1.position;
-	respos=joint2.position;
-	respos.X=handpos.X-shoulderpos.X;
-	respos.Y=handpos.Y-shoulderpos.Y;
-	respos.Z=handpos.Z-shoulderpos.Z;
-	return respos;
-}
-
-XnPoint3D getLeftHandPosition(XnUserID user){
-	XnSkeletonJointPosition joint1, joint2;
-	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_LEFT_HAND,joint2);
-	g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user,  XN_SKEL_TORSO,joint1);
-	XnPoint3D handpos,shoulderpos,respos;
-	handpos = joint2.position;
-	shoulderpos = joint1.position;
-	respos=joint2.position;
-	respos.X=handpos.X-shoulderpos.X;
-	respos.Y=handpos.Y-shoulderpos.Y;
-	respos.Z=handpos.Z-shoulderpos.Z;
-	//printf("Hand - X:%2f Y:%2f Z:%2f\n",respos.X,respos.Y,respos.Z);
-	return respos;
-}
-*/
 
 // Callback: New user was detected
 void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
@@ -255,10 +226,6 @@ void LoadCalibration()
 	}
 }
 
-//vonMatthias
-// bekommt den mittelpunkt und den Radius und zeichnet damit den Kreis
-// sollte noch optimiert werden indem das initaliseren und laden der textur auserhalb geschieht
-// muss dann aber testen ob das permanente speicherbelegen nicht mehr belastet als das immer wieder laden
 void drawBubbles()
 {
 	glEnable(GL_TEXTURE_2D);
@@ -270,27 +237,12 @@ void drawBubbles()
   	 glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 	glEnable(GL_BLEND);
-
-		//Lade Textur auf ein Quad mit hilfe von SOIL
-		// Hier waere es besser selbst eine Methode zum Laden zu schreiben
-		GLuint tex_2d = SOIL_load_OGL_texture
-				(
-//					"./bubble.tga",		//funktioniert nicht
-					"/home/matthias/bubbles/bubble.tga",
-//					"/home_nfs/2013ws_bubble_a/bubbles/bubble.tga",
-					SOIL_LOAD_AUTO,
-					SOIL_CREATE_NEW_ID,
-					SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
-				);
-		// check for an error during the load process
-		if( 0 == tex_2d )
-		{
-			printf( "SOIL loading error: '%s'\n", SOIL_last_result() );
-		}
-
-
-	glBindTexture(GL_TEXTURE_2D, tex_2d);
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f(1,1,1,1);
+
+	// gehe sicher, das die Seifenblasentextur ausgewaehlt ist
+	glBindTexture(GL_TEXTURE_2D, dieBlase.texID);
+
 	glBegin(GL_QUADS);
 
 		for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
@@ -302,7 +254,6 @@ void drawBubbles()
 		}
 
 	glEnd();
-	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 }
 
 void markierePosition( int x , int y, int r)
@@ -335,23 +286,28 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 	{
 		//http://www.spieleprogrammierer.de/wiki/2D-Kollisionserkennung#Kollision_zwischen_einem_Kreis_und_einer_Geraden
 
-			double ax = limb_end.X - limb_start.X;
-			double ay = limb_end.Y - limb_start.Y;
+		// Richtungsvektor des Koerperglieds
+		double ax = limb_end.X - limb_start.X;
+		double ay = limb_end.Y - limb_start.Y;
 
-			double bx = (*i).x - limb_start.X;
-			double by = (*i).y - limb_start.Y;
+		// Verbindungsvektor von start joint zum Mittelpunkt des Kreises
+		double bx = (*i).x - limb_start.X;
+		double by = (*i).y - limb_start.Y;
 
-			double t = (ax * bx + ay * by) / (ax * ax + ay * ay);
+		// Das Koerperglied hat also die Geradengleichung v = x + a * t
+		// der punkt auf der geraden der dem mittelpunkt des Kreises am naechsten liegt
+	    //   wird nun durch t = <a,b> / <a,a> berechnet
+		double t = (ax * bx + ay * by) / (ax * ax + ay * ay);
 
-		      if (t < 0) t = 0;
-		      if (t > 1) t = 1;
+		// wenn der punkt nicht zwischen den joints liegt, muss man die joints selbst ueberpruefen
+		if (t < 0){ t = 0; }
+		if (t > 1){ t = 1; }
 
-				double px = limb_start.X + ax * t;
-				double py = limb_start.Y + ay * t;
+		// punkt auf der Strecke berechnen da wir jetzt t kennen
+		double px = limb_start.X + ax * t;
+		double py = limb_start.Y + ay * t;
 
-
-
-		//pruefe mit Pythagoras ob Blase User am Punkt des Limb beruehrt der am naechsten liegt
+		//pruefe mit Pythagoras ob Blase, User am Punkt des Limb beruehrt der am naechsten liegt
 		if( (px - (*i).x)*(px - (*i).x) + ( py - (*i).y)*( py - (*i).y) < ((*i).r)*((*i).r))
 		{
 			markierePosition( px, py, 5);
@@ -405,9 +361,6 @@ void checkCollisionAll()
 	}
 }
 
-
-
-
 void updateBubbles()
 {
 	glRasterPos2i(20, 20);
@@ -417,7 +370,14 @@ void updateBubbles()
 
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
+		if( (*i).y >  GL_WIN_SIZE_Y )
+		{
+			//bla.erase( i );
+		}
+		else
+		{
 		(*i).updateBlase();
+		}
 	}
 }
 
@@ -511,12 +471,15 @@ void glutKeyboard (unsigned char key, int x, int y)
         case'g':
                 g_bGame = !g_bGame;     // spiel gestartet
                 g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
-                g_bDrawBackground = FALSE;
+                //g_bDrawBackground = FALSE;
                 bla.push_back( Blase() );
                 break;
                 
         case 'n':
-        		bla.push_back( Blase() );
+        		// Ich muss dem konstruktor eine Zahl mitgeben sonst erzeugt er
+        		// wenn innerhalb der gleichen Sekunde mehrmals gedrueckt wird
+        		// mehrere gleiche Blasen
+        		bla.push_back( Blase( bla.size()) );
         		break;
 
 	case 'S':
@@ -527,6 +490,38 @@ void glutKeyboard (unsigned char key, int x, int y)
 		break;
 	}
 }
+
+void gameInit()
+{
+	glEnable(GL_TEXTURE_2D);
+    	 glShadeModel(GL_SMOOTH);
+    	 glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    	 glClearDepth(1.0f);
+   	 glEnable(GL_DEPTH_TEST);
+  	 glDepthFunc(GL_LEQUAL);
+  	 glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+	glEnable(GL_BLEND);
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+
+	// Die Seifenblasen Textur laden mithilfe von tga.h
+	// wird in der globalen Textur Variable dieBlase referenziert
+    LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
+
+    /* Texture Generation Using Data From The TGA */
+    glGenTextures(1, &dieBlase.texID);				/* Create The Texture */
+    glBindTexture(GL_TEXTURE_2D, dieBlase.texID);
+    glTexImage2D(GL_TEXTURE_2D, 0, dieBlase.bpp / 8, dieBlase.width, dieBlase.height, 0, dieBlase.type, GL_UNSIGNED_BYTE, dieBlase.imageData);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+    if (dieBlase.imageData)						/* If Texture Image Exists */
+    {
+    	free(dieBlase.imageData);					/* Free The Texture Image Memory */
+    }
+}
+
 void glInit (int * pargc, char ** argv)
 {
 	glutInit(pargc, argv);
@@ -668,6 +663,7 @@ int main(int argc, char **argv)
 
 #ifndef USE_GLES
 	glInit(&argc, argv);
+	gameInit();
 	glutMainLoop();
 #else
 	if (!opengles_init(GL_WIN_SIZE_X, GL_WIN_SIZE_Y, &display, &surface, &context))
@@ -680,6 +676,8 @@ int main(int argc, char **argv)
 	glEnable(GL_TEXTURE_2D);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
+
+	gameInit();
 
 	while (!g_bQuit)
 	{

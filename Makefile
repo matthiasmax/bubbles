@@ -7,7 +7,8 @@ INC_DIRS = openniRedist/Include /usr/include/ni
 SRC_FILES = \
 	main.cpp \
 	SceneDrawer.cpp	\
-	Blase.cpp
+	Blase.cpp \
+	tga.cpp
 
 EXE_NAME = seifenblasen
 
