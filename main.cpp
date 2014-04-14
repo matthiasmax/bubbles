@@ -30,6 +30,7 @@
 #include "tga.h"  //zum laden der textur
 #include "Blase.h" //definiert die Blasen
 #include <vector> // Für die Klasse std::vector
+#include <math.h> //sqrt
 
 //---------------------------------------------------------------------------
 // Globals
@@ -294,24 +295,90 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 		double bx = (*i).x - limb_start.X;
 		double by = (*i).y - limb_start.Y;
 
-		// Das Koerperglied hat also die Geradengleichung v = x + a * t
+		// Das Koerperglied hat also die Geradengleichung v = limb_start + a * t
 		// der punkt auf der geraden der dem mittelpunkt des Kreises am naechsten liegt
 	    //   wird nun durch t = <a,b> / <a,a> berechnet
 		double t = (ax * bx + ay * by) / (ax * ax + ay * ay);
 
 		// wenn der punkt nicht zwischen den joints liegt, muss man die joints selbst ueberpruefen
-		if (t < 0){ t = 0; }
-		if (t > 1){ t = 1; }
+		if (t < 0)
+		{
+			t = 0;
+
+			//pruefe mit Pythagoras ob Blase User am limb_start beruehrt
+			if( bx*bx + by*by < ((*i).r)*((*i).r))
+			{
+				// Normalisiere den Vektor
+				bx = bx / (double)(*i).r ;
+				by = by / (double)(*i).r ;
+
+				// Setze anhand des Beruehrpunktes der Blase einen Richtungsvektor
+				(*i).setMove( bx * (*i).getAcc() * 1.3 , by * (*i).getAcc() * 1.3);
+
+				// Breche Collision ueberpruefung ab.
+				return;
+			}
+		}
+		else if (t > 1)
+		{
+			t = 1;
+
+			// Verbindungsvektor von end joint zum Mittelpunkt des Kreises
+			double cx = (*i).x - limb_end.X;
+			double cy = (*i).y - limb_end.Y;
+
+			//pruefe mit Pythagoras ob Blase User am limb_start beruehrt
+			if( cx*cx + cy*cy < ((*i).r)*((*i).r))
+			{
+				// Setze anhand des Beruehrpunktes der Blase einen Richtungsvektor
+				(*i).setMove( cx * (*i).getAcc() * 1.3 , cy * (*i).getAcc() * 1.3);
+
+				// Breche Collision ueberpruefung ab.
+				return;
+			}
+		}
 
 		// punkt auf der Strecke berechnen da wir jetzt t kennen
 		double px = limb_start.X + ax * t;
 		double py = limb_start.Y + ay * t;
 
+		// Berechne Vektor von Berührpunkt zu Mittelpunkt der Blase
+		double vx = ( (*i).x - px );
+		double vy = ( (*i).y - py );
+
 		//pruefe mit Pythagoras ob Blase, User am Punkt des Limb beruehrt der am naechsten liegt
-		if( (px - (*i).x)*(px - (*i).x) + ( py - (*i).y)*( py - (*i).y) < ((*i).r)*((*i).r))
+		if( vx * vx + vy * vy < ((*i).r)*((*i).r))
 		{
+
 			markierePosition( px, py, 5);
-			(*i).setMove( 3, -5);
+
+			// Laenge des Koerperglieds
+			double la = sqrt( ax * ax + ay * ay );
+
+			//Laenge des Bewegungsvektors der Kugel
+			double lk = sqrt( (*i).vx * (*i).vx + (*i).vy * (*i).vy );
+
+			//Winkel zwischen Limb und Bewegungsrichtung der Kugel
+			double cosW = ax * (*i).vx + ay * (*i).vy / ( lk * la );
+			printf(" ax = %f und ay = %f xxxxx vx = %f und vy = %f \n" , ax, ay, (*i).vx, (*i).vy );
+
+
+			if( cosW < 0){ cosW *= -1; }
+			printf( "la = %f __ lk = %f __ das ist der Cosinus: %f \n", la, lk , cosW);
+
+			//sin x = Wurzel aus (1 - cos²x)
+			double sinW = sqrt(1 - cosW * cosW );
+			//Drehmatrix auf Vektor anwenden um neue Richtung nach Kollision zu bestimmen
+			//   | cosW  -sinW |
+			//   | sinW   cosW |
+
+			// Da vx und vy nicht mehr gebraucht werden speichere ich kurz den (*i).x wert in vx
+			vx = (*i).vx;
+
+			// Drehe den alten Vektor um den Winkel w
+			(*i).vx = cosW * (*i).vx - sinW * (*i).vy;
+			(*i).vy =  sinW * vx + cosW * (*i).vy;
+
 		}
 	}
 }
@@ -370,13 +437,20 @@ void updateBubbles()
 
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
+		// Kinect hat aufloesung von 640 × 480
+		if( (*i).x < (*i).r || (*i).x > ( 640 - (*i).r ) )
+		{
+			(*i).vx *= -1;
+		}
+
 		if( (*i).y >  GL_WIN_SIZE_Y )
 		{
-			//bla.erase( i );
+			(*i).newStart();
+			//bla.erase( i );	//funkt net fuehrt zu speicherzugrifffehler
 		}
 		else
 		{
-		(*i).updateBlase();
+			(*i).updateBlase();
 		}
 	}
 }

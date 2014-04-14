@@ -24,8 +24,6 @@ else
 	SRC_FILES += opengles.cpp
 endif
 
-USED_LIBS += SOIL
-
 USED_LIBS += OpenNI
 
 LIB_DIRS += ../../Lib

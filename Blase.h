@@ -14,8 +14,11 @@ public:
 	virtual ~Blase();
 	Blase( int helpRandom );
 
+	void newStart();
 	void updateBlase();
 	void setMove( int x, int y);
+
+	double getAcc();
 
 	int r;	//radius
 	double x;	//X Koordinate
