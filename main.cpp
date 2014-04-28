@@ -49,6 +49,7 @@ XnBool g_bDrawSkeleton = TRUE;
 XnBool g_bPrintID = TRUE;
 XnBool g_bPrintState = TRUE;
 XnBool g_bGame = FALSE; //Matthias
+XnBool g_bBlase = TRUE; //Matthias
 
 #ifndef USE_GLES
 #if (XN_PLATFORM == XN_PLATFORM_MACOSX)
@@ -77,6 +78,7 @@ XnBool g_bQuit = false;
 std::vector<Blase> bla;
 
 Texture dieBlase;		//speichert die Seifenblasentextur
+Texture dieOrange;		//speichert eine alternative Textur
 
 //---------------------------------------------------------------------------
 // Code
@@ -241,8 +243,16 @@ void drawBubbles()
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f(1,1,1,1);
 
-	// gehe sicher, das die Seifenblasentextur ausgewaehlt ist
-	glBindTexture(GL_TEXTURE_2D, dieBlase.texID);
+	if(g_bBlase)
+	{
+		// gehe sicher, das die Seifenblasentextur ausgewaehlt ist
+		glBindTexture(GL_TEXTURE_2D, dieBlase.texID);
+	}
+	else
+	{
+		glBindTexture(GL_TEXTURE_2D, dieOrange.texID);
+	}
+	
 
 	glBegin(GL_QUADS);
 
@@ -346,12 +356,24 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 		double vx = ( (*i).x - px );
 		double vy = ( (*i).y - py );
 
+		// hier will ein bild davon machen fuer praesentation
+//		markierePosition( px, py, 5);
+
 		//pruefe mit Pythagoras ob Blase, User am Punkt des Limb beruehrt der am naechsten liegt
 		if( vx * vx + vy * vy < ((*i).r)*((*i).r))
 		{
 
 			markierePosition( px, py, 5);
 
+//Vorlaeufige berechnung damit es halbwegs spielbar ist
+			if((*i).vx > 0 ){ (*i).vx = (*i).vx * (-1)  - 2; }
+			else{(*i).vx = (*i).vx * (-1)  + 2;}
+			
+			if((*i).vy > 0 ){ (*i).vy = (*i).vy * (-1)  - 2; }
+			else{(*i).vy = (*i).vy  + 2;}
+			 
+/*
+//Versuch die Limbs als Vektoren aufzufassen und den Winkel zu berechnen
 			// Laenge des Koerperglieds
 			double la = sqrt( ax * ax + ay * ay );
 
@@ -361,7 +383,6 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 			//Winkel zwischen Limb und Bewegungsrichtung der Kugel
 			double cosW = ax * (*i).vx + ay * (*i).vy / ( lk * la );
 			printf(" ax = %f und ay = %f xxxxx vx = %f und vy = %f \n" , ax, ay, (*i).vx, (*i).vy );
-
 
 			if( cosW < 0){ cosW *= -1; }
 			printf( "la = %f __ lk = %f __ das ist der Cosinus: %f \n", la, lk , cosW);
@@ -378,7 +399,7 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 			// Drehe den alten Vektor um den Winkel w
 			(*i).vx = cosW * (*i).vx - sinW * (*i).vy;
 			(*i).vy =  sinW * vx + cosW * (*i).vy;
-
+*/
 		}
 	}
 }
@@ -400,7 +421,7 @@ void checkCollisionOnJoint( XnUserID usr, XnSkeletonJoint jt )
 		//pruefe mit Pythagoras ob Blase User an der position point beruehrt
 		if( (point.X - (*i).x)*(point.X - (*i).x) + ( point.Y - (*i).y)*( point.Y - (*i).y) < ((*i).r)*((*i).r))
 		{
-			(*i).setMove( 3, -5);
+			(*i).setMove( 3, -8);
 		}
 	}
 }
@@ -418,7 +439,7 @@ void checkCollisionAll()
 //		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_ELBOW );
 //		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_ELBOW);
 //
-//		checkCollisionOnJoint( aUsers[i], XN_SKEL_HEAD);
+		checkCollisionOnJoint( aUsers[i], XN_SKEL_HEAD);
 
 		checkCollisionLimb( aUsers[i], XN_SKEL_LEFT_HAND, XN_SKEL_LEFT_ELBOW);
 		checkCollisionLimb( aUsers[i], XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_SHOULDER);
@@ -540,11 +561,16 @@ void glutKeyboard (unsigned char key, int x, int y)
 	case'p':
 		g_bPause = !g_bPause;
 		break;
+
+	case'o':
+		g_bBlase = !g_bBlase;
+		break;
                 
         // Starte das Seifenblasen Spiel        
         case'g':
                 g_bGame = !g_bGame;     // spiel gestartet
                 g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
+		g_bDrawSkeleton = !g_bDrawSkeleton;	//Zeige Skelett nicht
                 //g_bDrawBackground = FALSE;
                 bla.push_back( Blase() );
                 break;
@@ -581,7 +607,8 @@ void gameInit()
 
 	// Die Seifenblasen Textur laden mithilfe von tga.h
 	// wird in der globalen Textur Variable dieBlase referenziert
-    LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
+    //LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
+    LoadTGA( &dieBlase, "/home_nfs/2013ws_bubble_a/bubbles/bubble.tga");
 
     /* Texture Generation Using Data From The TGA */
     glGenTextures(1, &dieBlase.texID);				/* Create The Texture */
@@ -593,6 +620,24 @@ void gameInit()
     if (dieBlase.imageData)						/* If Texture Image Exists */
     {
     	free(dieBlase.imageData);					/* Free The Texture Image Memory */
+    }
+
+
+	// Die Alternative Textur laden mithilfe von tga.h
+	// wird in der globalen Textur Variable dieBlase referenziert
+    //LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
+    LoadTGA( &dieOrange, "/home_nfs/2013ws_bubble_a/bubbles/bOrange.tga");
+
+    /* Texture Generation Using Data From The TGA */
+    glGenTextures(1, &dieOrange.texID);				/* Create The Texture */
+    glBindTexture(GL_TEXTURE_2D, dieOrange.texID);
+    glTexImage2D(GL_TEXTURE_2D, 0, dieOrange.bpp / 8, dieOrange.width, dieOrange.height, 0, dieOrange.type, GL_UNSIGNED_BYTE, dieOrange.imageData);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+    if (dieOrange.imageData)						/* If Texture Image Exists */
+    {
+    	free(dieOrange.imageData);					/* Free The Texture Image Memory */
     }
 }
 
