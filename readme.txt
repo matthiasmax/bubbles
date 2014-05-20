@@ -1,16 +1,20 @@
-mal notizen sammeln wird spaeter zu ner richtigen readme vervollstaendigt
+-----------------------------------------------------------------------------------------------------------
+| Anforderungen fuer bubbles
+-----------------------------------------------------------------------------------------------------------
+| // Wenn zuerst die Anleitung des Repositorys kinect befolgt wurde
+| // genuegt es einfach dieses Repository zu laden, dann sollte nach einem make
+| // in bin/Release die ausfuehrbahre Datei seifenblasen liegen
+-----------------------------------------------------------------------------------------------------------
+___________________________________________________________________________________________________________
+1. OpenNi, SensorKinect, NiTe
+	- Schauen sie hierzu in das dafuer erstellte Git Repository
 
-was man fuer openni installieren braucht
-
-was man zum kompilieren der bubbles quelldateien braucht
-
-den ordner openni  (in den bubbles ordner legen)
-(genauer den ordner openni/Platform/Linux-x86/Redist)
+2. den ordner openni  (in den bubbles ordner legen)
+(genauer gesagt den ordner openni/Platform/Linux-x86/Redist)
 in diesem muss man den Redist ordner erstellen indem man in das Verzeichnis 
-ordner openni/Platform/Linux-x86/CreateRedist
+openni/Platform/Linux-x86/CreateRedist
 geht und dort ./RedistMaker ausfuehrt (evtl chmod +x RedistMaker noetig)
 
------------------
 dann muss man den pfad der samplesConfig in den Quelldateien aendern z.B. in
 #define SAMPLE_XML_PATH "../../openniRedist/Samples/Config/SamplesConfig.xml"
 wenn man den redist ordner in den gleichen ordner wie das make file und die quelldateien legt.
