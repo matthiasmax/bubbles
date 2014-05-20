@@ -27,10 +27,12 @@
 #include <XnCppWrapper.h>
 #include "SceneDrawer.h"
 #include <XnPropNames.h>
-#include "tga.h"  //zum laden der textur
-#include "Blase.h" //definiert die Blasen
-#include <vector> // Für die Klasse std::vector
-#include <math.h> //sqrt
+#include <string>   // Fuer Stringmanipulationen (nur fuer Dateipfad)
+#include <unistd.h> // zum Bestimmen des Absoluten Dateipfads
+#include "tga.h"    //zum laden der Texturen
+#include "Blase.h"  //definiert die Blasen
+#include <vector>   // Fuer die Klasse std::vector
+#include <math.h>   //Fuer die Methode sqrt
 
 //---------------------------------------------------------------------------
 // Globals
@@ -48,8 +50,10 @@ XnBool g_bDrawPixels = TRUE;
 XnBool g_bDrawSkeleton = TRUE;
 XnBool g_bPrintID = TRUE;
 XnBool g_bPrintState = TRUE;
-XnBool g_bGame = FALSE; //Matthias
-XnBool g_bBlase = TRUE; //Matthias
+
+XnBool g_bGame = FALSE; //Status des Spiels gestartet/nicht gestartet
+XnBool g_bHelp = TRUE;  //Status der Hilfe angezeigt/nicht angezeigt
+XnBool g_bBlase = TRUE; //Auswahl der Blasentextur Seife/Alternative
 
 #ifndef USE_GLES
 #if (XN_PLATFORM == XN_PLATFORM_MACOSX)
@@ -67,18 +71,19 @@ static EGLSurface surface = EGL_NO_SURFACE;
 static EGLContext context = EGL_NO_CONTEXT;
 #endif
 
-#define GL_WIN_SIZE_X 1500	//720
-#define GL_WIN_SIZE_Y 700   //480
+#define GL_WIN_SIZE_X 720	//Standardwert: 720
+#define GL_WIN_SIZE_Y 480   //Standardwert: 480
 
 XnBool g_bPause = false;
 XnBool g_bRecord = false;
 
 XnBool g_bQuit = false;
 
-std::vector<Blase> bla;
+std::vector<Blase> bla;	// enthaelt die einzelnen Instanzen der Blasen
 
 Texture dieBlase;		//speichert die Seifenblasentextur
 Texture dieOrange;		//speichert eine alternative Textur
+Texture dieHilfe;		// speichert die Textur der Hilfe
 
 //---------------------------------------------------------------------------
 // Code
@@ -229,6 +234,43 @@ void LoadCalibration()
 	}
 }
 
+//Zeigt die Hilfe an
+void showHelp()
+{
+	glEnable(GL_TEXTURE_2D);
+	    	 glShadeModel(GL_SMOOTH);
+	    	 glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+	    	 glClearDepth(1.0f);
+	   	 glEnable(GL_DEPTH_TEST);
+	  	 glDepthFunc(GL_LEQUAL);
+	  	 glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+		glEnable(GL_BLEND);
+		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+		glColor4f(1,1,1,1);
+
+		if(g_bBlase)
+		{
+			// gehe sicher, das die Textur ausgewaehlt ist
+			glBindTexture(GL_TEXTURE_2D, dieHilfe.texID);
+		}
+
+		//Koordinaten festlegen
+		// Kinect hat aufloesung von 640 × 480
+		int x = 640 / 2;
+		int y = 480 / 2;
+		int r = 640 / 4;
+
+		// Zeichne die Quadrate und lege die Textur darueber
+		glBegin(GL_QUADS);
+			    glTexCoord2f(0.0f, 0.0f); glVertex3f( x - r, y + r,  1.0f); //links unten
+			    glTexCoord2f(1.0f, 0.0f); glVertex3f( x + r, y + r,  1.0f); //rechts unten
+			    glTexCoord2f(1.0f, 1.0f); glVertex3f( x + r, y - r,  1.0f); //rechts oben
+			    glTexCoord2f(0.0f, 1.0f); glVertex3f( x - r, y - r,  1.0f); //links oben
+		glEnd();
+}
+
+// Wird in jedem Frame aufgerufen und zeichnet die Blasen an ihrer jeweiligen Position
 void drawBubbles()
 {
 	glEnable(GL_TEXTURE_2D);
@@ -250,10 +292,11 @@ void drawBubbles()
 	}
 	else
 	{
+		// gehe sicher, das die alternative Textur ausgewaehlt ist
 		glBindTexture(GL_TEXTURE_2D, dieOrange.texID);
 	}
 	
-
+	// Zeichne die Quadrate und lege die Textur darueber
 	glBegin(GL_QUADS);
 
 		for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
@@ -267,6 +310,7 @@ void drawBubbles()
 	glEnd();
 }
 
+// eine Methode um einen beliebigen Punkt (x,y) mit einem Quadrat mit Seitenlaenge 2r zu markieren
 void markierePosition( int x , int y, int r)
 {
 	glColor4f(1,0.8,0,1);
@@ -280,7 +324,7 @@ void markierePosition( int x , int y, int r)
 	glEnd();
 }
 
-//prueft ob eine blase das Koerperglied zwischen joint1 und joint2 des users usr beruehrt
+//prueft ob eine Blase das Koerperglied zwischen joint1 und joint2 des Users usr beruehrt
 void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint joint2)
 {
 	XnSkeletonJointPosition joint_pos;
@@ -293,9 +337,10 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 	XnPoint3D limb_end = joint_pos.position;
 	g_DepthGenerator.ConvertRealWorldToProjective(1, &limb_end, &limb_end);
 
+	//Fuer jede Blase pruefen
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
-		//http://www.spieleprogrammierer.de/wiki/2D-Kollisionserkennung#Kollision_zwischen_einem_Kreis_und_einer_Geraden
+		//Methode: Kollision zwischen einem Kreis und einer Geraden
 
 		// Richtungsvektor des Koerperglieds
 		double ax = limb_end.X - limb_start.X;
@@ -306,11 +351,11 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 		double by = (*i).y - limb_start.Y;
 
 		// Das Koerperglied hat also die Geradengleichung v = limb_start + a * t
-		// der punkt auf der geraden der dem mittelpunkt des Kreises am naechsten liegt
+		// der punkt auf der Geraden der dem Mittelpunkt des Kreises am naechsten liegt
 	    //   wird nun durch t = <a,b> / <a,a> berechnet
 		double t = (ax * bx + ay * by) / (ax * ax + ay * ay);
 
-		// wenn der punkt nicht zwischen den joints liegt, muss man die joints selbst ueberpruefen
+		// wenn der Punkt nicht zwischen den joints liegt, muss man die joints selbst ueberpruefen
 		if (t < 0)
 		{
 			t = 0;
@@ -325,7 +370,7 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 				// Setze anhand des Beruehrpunktes der Blase einen Richtungsvektor
 				(*i).setMove( bx * (*i).getAcc() * 1.3 , by * (*i).getAcc() * 1.3);
 
-				// Breche Collision ueberpruefung ab.
+				// Breche Collision Ueberpruefung ab.
 				return;
 			}
 		}
@@ -337,7 +382,7 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 			double cx = (*i).x - limb_end.X;
 			double cy = (*i).y - limb_end.Y;
 
-			//pruefe mit Pythagoras ob Blase User am limb_start beruehrt
+			//pruefe mit Pythagoras ob Blase User am limb_end beruehrt
 			if( cx*cx + cy*cy < ((*i).r)*((*i).r))
 			{
 				// Setze anhand des Beruehrpunktes der Blase einen Richtungsvektor
@@ -356,16 +401,13 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 		double vx = ( (*i).x - px );
 		double vy = ( (*i).y - py );
 
-		// hier will ein bild davon machen fuer praesentation
-//		markierePosition( px, py, 5);
-
 		//pruefe mit Pythagoras ob Blase, User am Punkt des Limb beruehrt der am naechsten liegt
 		if( vx * vx + vy * vy < ((*i).r)*((*i).r))
 		{
 
 			markierePosition( px, py, 5);
 
-//Vorlaeufige berechnung damit es halbwegs spielbar ist
+			//Vereinfachte Berechnung damit das Spielen moeglich ist
 			if((*i).vx > 0 ){ (*i).vx = (*i).vx * (-1)  - 2; }
 			else{(*i).vx = (*i).vx * (-1)  + 2;}
 			
@@ -374,6 +416,8 @@ void checkCollisionLimb(XnUserID usr, XnSkeletonJoint joint1, XnSkeletonJoint jo
 			 
 /*
 //Versuch die Limbs als Vektoren aufzufassen und den Winkel zu berechnen
+// Funktioniert noch nicht
+
 			// Laenge des Koerperglieds
 			double la = sqrt( ax * ax + ay * ay );
 
@@ -434,21 +478,26 @@ void checkCollisionAll()
 	g_UserGenerator.GetUsers(aUsers, nUsers);
 	for (int i = 0; i < nUsers; ++i)
 	{
-//		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_HAND );
-//		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_HAND );
-//		checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_ELBOW );
-//		checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_ELBOW);
-//
+		// man kann auch nur die Gelenke pruefen
+		//	checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_HAND );
+		//	checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_HAND );
+		//	checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_ELBOW );
+		//	checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_ELBOW);
+		//	checkCollisionOnJoint( aUsers[i], XN_SKEL_LEFT_SHOULDER );
+		//	checkCollisionOnJoint( aUsers[i], XN_SKEL_RIGHT_SHOULDER);
+
+		// Kopf pruefen
 		checkCollisionOnJoint( aUsers[i], XN_SKEL_HEAD);
 
+		// Glieder mit Gelenken pruefen
 		checkCollisionLimb( aUsers[i], XN_SKEL_LEFT_HAND, XN_SKEL_LEFT_ELBOW);
 		checkCollisionLimb( aUsers[i], XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_SHOULDER);
 		checkCollisionLimb( aUsers[i], XN_SKEL_RIGHT_HAND, XN_SKEL_RIGHT_ELBOW);
 		checkCollisionLimb( aUsers[i], XN_SKEL_RIGHT_ELBOW, XN_SKEL_RIGHT_SHOULDER);
-
 	}
 }
 
+//Wird in jedem Frame aufgerufen, aktualisiert die Position der Blasen indem der Richtungsvektor angewandt wird
 void updateBubbles()
 {
 	glRasterPos2i(20, 20);
@@ -458,16 +507,22 @@ void updateBubbles()
 
 	for(std::vector<Blase>::iterator i = bla.begin(); i != bla.end(); ++i)
 	{
+		// Pruefe ob Blase Rand beruehrt
 		// Kinect hat aufloesung von 640 × 480
 		if( (*i).x < (*i).r || (*i).x > ( 640 - (*i).r ) )
 		{
+			// x Richtung der Blase aendern
 			(*i).vx *= -1;
 		}
 
 		if( (*i).y >  GL_WIN_SIZE_Y )
 		{
+			// Wenn Blase auf den Boden kommt, soll sie wieder oben Starten
 			(*i).newStart();
-			//bla.erase( i );	//funkt net fuehrt zu speicherzugrifffehler
+
+			//wollte eigentlich die Blasen loeschen wenn sie auf den Boden fallen
+			// aber wenn ich diese Methode aufrufe kommt es spaeter zu einem Speicherzugrifffehler
+			//bla.erase( i );
 		}
 		else
 		{
@@ -503,6 +558,10 @@ void glutDisplay (void)
 		// Read next available data
 		g_Context.WaitOneUpdateAll(g_UserGenerator);
 	}
+	else if( g_bGame )
+	{
+		drawBubbles();
+	}
 
 		// Process the data
 		g_DepthGenerator.GetMetaData(depthMD);
@@ -514,6 +573,11 @@ void glutDisplay (void)
 		checkCollisionAll();
 		updateBubbles();
 		drawBubbles();
+	}
+
+	if( g_bHelp )
+	{
+		showHelp();
 	}
 
 #ifndef USE_GLES
@@ -560,6 +624,7 @@ void glutKeyboard (unsigned char key, int x, int y)
 		break;
 	case'p':
 		g_bPause = !g_bPause;
+		g_bGame = !g_bGame;     // spiel pausieren/starten
 		break;
 
 	case'o':
@@ -570,16 +635,23 @@ void glutKeyboard (unsigned char key, int x, int y)
         case'g':
                 g_bGame = !g_bGame;     // spiel gestartet
                 g_bPrintID = FALSE;     // Tracking Status muss nicht mehr angezeigt werden
-		g_bDrawSkeleton = !g_bDrawSkeleton;	//Zeige Skelett nicht
+                g_bHelp = FALSE;		// Hilfe auf jeden Fall mal ausblenden
+                g_bDrawSkeleton = !g_bDrawSkeleton;	//Zeige Skelett nicht
                 //g_bDrawBackground = FALSE;
                 bla.push_back( Blase() );
                 break;
-                
+
+        // erstelle weitere Blase
         case 'n':
         		// Ich muss dem konstruktor eine Zahl mitgeben sonst erzeugt er
         		// wenn innerhalb der gleichen Sekunde mehrmals gedrueckt wird
         		// mehrere gleiche Blasen
         		bla.push_back( Blase( bla.size()) );
+        		break;
+
+        //Zeige Hilfe an
+        case 'h':
+        		g_bHelp = !g_bHelp;		//Zeige Hilfe an
         		break;
 
 	case 'S':
@@ -591,8 +663,25 @@ void glutKeyboard (unsigned char key, int x, int y)
 	}
 }
 
+// Das Spiel initialisieren, hauptsaechlich die Texturen laden
 void gameInit()
 {
+	//Das aktuelle Arbeitsverzeichnis ermitteln
+	// dafuer wurden <string> und <unistd.h> importiert
+	char currentPath[FILENAME_MAX];
+
+	if (!getcwd(currentPath, sizeof(currentPath)))
+    {
+		printf("Fehler beim ermitteln des Dateispeicherorts der Texturen \n Wurde das Programm aus dem Ordner bin/Release/ ausgefuehrt?");
+    }
+
+	currentPath[sizeof(currentPath) - 1] = '\0'; /* not really required */
+	std::string s = currentPath;
+	s.erase( s.size() - 11, 11 );	//Entferne bin/Release/
+	s.append( "images/" );			//Haenge speicherort der Texturen an
+
+
+	// OpenGL Einstellungen zur Darstellung der Texturen der Blasen
 	glEnable(GL_TEXTURE_2D);
     	 glShadeModel(GL_SMOOTH);
     	 glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
@@ -604,40 +693,56 @@ void gameInit()
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-
 	// Die Seifenblasen Textur laden mithilfe von tga.h
 	// wird in der globalen Textur Variable dieBlase referenziert
-    //LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
-    LoadTGA( &dieBlase, "/home_nfs/2013ws_bubble_a/bubbles/bubble.tga");
+	LoadTGA( &dieBlase, (s + "bubble.tga").c_str());
+	//LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
+    //LoadTGA( &dieBlase, "/home_nfs/2013ws_bubble_a/bubbles/bubble.tga");
 
-    /* Texture Generation Using Data From The TGA */
-    glGenTextures(1, &dieBlase.texID);				/* Create The Texture */
+    // Die Textur generieren mit den Daten des TGA Files
+    glGenTextures(1, &dieBlase.texID);				// Textur erstellen
     glBindTexture(GL_TEXTURE_2D, dieBlase.texID);
     glTexImage2D(GL_TEXTURE_2D, 0, dieBlase.bpp / 8, dieBlase.width, dieBlase.height, 0, dieBlase.type, GL_UNSIGNED_BYTE, dieBlase.imageData);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 
-    if (dieBlase.imageData)						/* If Texture Image Exists */
+    if (dieBlase.imageData)						// Falls die Textur existiert
     {
-    	free(dieBlase.imageData);					/* Free The Texture Image Memory */
+    	free(dieBlase.imageData);					// kann der Bildspeicher der Textur freigegeben werden
     }
 
-
 	// Die Alternative Textur laden mithilfe von tga.h
-	// wird in der globalen Textur Variable dieBlase referenziert
-    //LoadTGA( &dieBlase, "/home/matthias/bubbles/bubble.tga");
-    LoadTGA( &dieOrange, "/home_nfs/2013ws_bubble_a/bubbles/bOrange.tga");
+	// wird in der globalen Textur Variable dieOrange referenziert
+    LoadTGA( &dieOrange, (s + "bOrange.tga").c_str());
+    //LoadTGA( &dieOrange, "/home/matthias/bubbles/bOrange.tga");
+    //LoadTGA( &dieOrange, "/home_nfs/2013ws_bubble_a/bubbles/bOrange.tga");
 
-    /* Texture Generation Using Data From The TGA */
-    glGenTextures(1, &dieOrange.texID);				/* Create The Texture */
+    // Die Textur generieren mit den Daten des TGA Files
+    glGenTextures(1, &dieOrange.texID);				//Textur erstellen
     glBindTexture(GL_TEXTURE_2D, dieOrange.texID);
     glTexImage2D(GL_TEXTURE_2D, 0, dieOrange.bpp / 8, dieOrange.width, dieOrange.height, 0, dieOrange.type, GL_UNSIGNED_BYTE, dieOrange.imageData);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 
-    if (dieOrange.imageData)						/* If Texture Image Exists */
+    if (dieOrange.imageData)						// Falls die Textur existiert
     {
-    	free(dieOrange.imageData);					/* Free The Texture Image Memory */
+    	free(dieOrange.imageData);					// kann der Bildspeicher der Textur freigegeben werden
+    }
+
+	// Die  Textur der Hilfe laden mithilfe von tga.h
+	// wird in der globalen Textur Variable dieHilfe referenziert
+    LoadTGA( &dieHilfe, (s + "help.tga").c_str());
+
+    // Die Textur generieren mit den Daten des TGA Files
+    glGenTextures(1, &dieHilfe.texID);				//Textur erstellen
+    glBindTexture(GL_TEXTURE_2D, dieHilfe.texID);
+    glTexImage2D(GL_TEXTURE_2D, 0, dieHilfe.bpp / 8, dieHilfe.width, dieHilfe.height, 0, dieHilfe.type, GL_UNSIGNED_BYTE, dieHilfe.imageData);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+    if (dieHilfe.imageData)						// Falls die Textur existiert
+    {
+    	free(dieHilfe.imageData);					// kann der Bildspeicher der Textur freigegeben werden
     }
 }
 
@@ -647,7 +752,7 @@ void glInit (int * pargc, char ** argv)
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(GL_WIN_SIZE_X, GL_WIN_SIZE_Y);
 	glutCreateWindow ("Seifenblasen balancieren");
-	//glutFullScreen();
+      glutFullScreen();
 	glutSetCursor(GLUT_CURSOR_NONE);
 
 	glutKeyboardFunc(glutKeyboard);
@@ -662,6 +767,7 @@ void glInit (int * pargc, char ** argv)
 }
 #endif // USE_GLES
 
+// Der Pfad ist fuer das Compilieren wichtig
 #define SAMPLE_XML_PATH "../../openniRedist/Samples/Config/SamplesConfig.xml"
 
 #define CHECK_RC(nRetVal, what)										\
@@ -796,6 +902,7 @@ int main(int argc, char **argv)
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 
+	// Das Spiel initialisieren
 	gameInit();
 
 	while (!g_bQuit)

@@ -7,7 +7,6 @@
 
 #include "Blase.h"
 
-//#include <stdio.h>      /* printf, scanf, puts, NULL */
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include <math.h>		/* sqrt */

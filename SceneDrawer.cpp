@@ -289,8 +289,8 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 			g_pDepthHist[nIndex] = (unsigned int)(256 * (1.0f - (g_pDepthHist[nIndex] / nNumberOfPoints)));
 		}
 	}
-
 	
+	// Ist nur zum Testen gedacht, hat keine Programmrelevanz und wird auch nicht ausgefuehrt
 	//zum testen erstelle ich ein pixel feld in dem ich angebe wo ich etwas gezeichnet bekommen moechte
 	bool kreis[g_nXRes * g_nYRes];
         for (nY=0; nY<g_nYRes; nY++)
@@ -346,7 +346,7 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 				
 				if( g_bGame && kreis[nX + nY*g_nXRes] )
                 {
-					/* Hier koennte ich eventuell einen anderen hintergrund zeichnen lassen
+					/* Hier kann man die Pixel des Hintergrund Histogramms manipulieren
 					pDestImage[0] = 255;   //rot
 					pDestImage[1] = 128;   //gruen
 					pDestImage[2] = 0;     //blau
@@ -383,7 +383,7 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 	for (int i = 0; i < nUsers; ++i)
 	{
 #ifndef USE_GLES
-                 // Beschriftet die einzelnen User mit dem aktuellen Tracking Status auf dem Monitor
+        // Beschriftet die einzelnen User mit dem aktuellen Tracking Status auf dem Monitor
 		if (g_bPrintID)
 		{
 			XnPoint3D com;
@@ -417,11 +417,12 @@ void DrawDepthMap(const xn::DepthMetaData& dmd, const xn::SceneMetaData& smd)
 
 			glRasterPos2i(com.X, com.Y);
 			glPrintString(GLUT_BITMAP_HELVETICA_18, strLabel);
-//printf("Das ist x: %f  ...  Das ist y: %f \n", com.X, com.Y);
+			// Zum Testen was die Ausgabe genau macht
+			//printf("Das ist x: %f  ...  Das ist y: %f \n", com.X, com.Y);
 
 		}
 #endif
-                 // Zeichnet das Skelet in die einzelnen User hinein
+        // Zeichnet das Skelet in die einzelnen User hinein
 		if (g_bDrawSkeleton && g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
 		{
 #ifndef USE_GLES
